@@ -1,228 +1,227 @@
 # Voice Ideas for Amazfit Bip 6
 
-Mini-application Zepp OS 5 / API_LEVEL 4.2 qui enregistre une idee vocale sur la montre, sauvegarde le fichier localement, puis demande au Side Service telephone de l'envoyer a un serveur par HTTP POST.
+A Zepp OS 5 / API_LEVEL 4.2 mini app that records a voice idea on the watch, saves the file locally, then asks the phone Side Service to send it to a server via HTTP POST.
 
-## Structure typique Zepp OS
+## Typical Zepp OS structure
 
-Un projet Zepp OS Mini Program contient generalement :
+A Zepp OS Mini Program project usually contains:
 
-- `app.json` : manifeste de l'application, API cible, pages, Side Service, permissions.
-- `page/` : code execute sur la montre. La cible Bip 6 detectee par le CLI local est `pamir`, ecran `390x450`, API max `4.2`.
-- `data-widget/` : widget raccourci affiche dans les tuiles/widgets et ouvre la page principale.
-- `app-side/` : Side Service execute cote telephone via l'application Zepp.
-- `setting/` : ecran de reglages affiche cote telephone dans l'application Zepp.
-- `shared/` ou petits adaptateurs : code de messagerie ou contrats communs.
-- `package.json` : scripts locaux autour du CLI Zepp `zeus`.
+- `app.json`: app manifest, target API, pages, Side Service, permissions.
+- `page/`: code executed on the watch. The Bip 6 target detected by the local CLI is `pamir`, screen `390x450`, max API `4.2`.
+- `data-widget/`: shortcut widget shown in tiles/widgets that opens the main page.
+- `app-side/`: Side Service executed on the phone through the Zepp app.
+- `setting/`: settings screen shown on the phone in the Zepp app.
+- `shared/` or small adapters: messaging code or shared contracts.
+- `package.json`: local scripts around the Zepp `zeus` CLI.
 
-Ce squelette suit cette structure. Les appels reseau sont uniquement dans `app-side/`, car la montre ne doit pas etre supposee capable d'appeler Internet directement.
+This scaffold follows that structure. Network calls are only made in `app-side/`, because the watch should not be assumed to call the Internet directly.
 
-## Commandes Linux
+## Linux commands
 
-Installer le CLI Zepp OS :
+Install the Zepp OS CLI:
 
 ```bash
 npm install -g @zeppos/zeus-cli
 ```
 
-Installer les dependances locales du projet :
+Install local project dependencies:
 
 ```bash
 npm install
 ```
 
-Verifier que le CLI est disponible :
+Check that the CLI is available:
 
 ```bash
 zeus --version
 ```
 
-Construire le projet :
+Build the project:
 
 ```bash
 npm run build
 ```
 
-Lancer le mode developpement :
+Start development mode:
 
 ```bash
 npm run dev
 ```
 
-Generer un apercu/QR de test si votre version du CLI le supporte :
+Generate a preview/test QR if your CLI version supports it:
 
 ```bash
 npm run preview
 ```
 
-## Configuration serveur
+## Server configuration
 
-Editez `app-side/config.js` :
+Edit `app-side/config.js`:
 
 ```js
-export const SERVER_UPLOAD_URL = 'https://votre-serveur.example/api/voice-ideas'
+export const SERVER_UPLOAD_URL = 'https://your-server.example/api/voice-ideas'
 ```
 
-Ces valeurs peuvent aussi etre modifiees depuis l'application Zepp sur le telephone, dans les reglages de l'application `Voice Ideas` :
+These values can also be changed from the Zepp app on the phone, in the `Voice Ideas` app settings:
 
 - `Server upload URL`
 - `Debug URL`
 - `Recipient email`
 
-Le Side Service utilise les reglages telephone s'ils existent, sinon les valeurs par defaut de `app-side/config.js`.
-`Recipient email` est envoye au serveur avec chaque enregistrement sous le champ `recipientEmail`, ce qui permet au meme endpoint serveur de servir plusieurs montres.
+The Side Service uses phone settings if they exist; otherwise it falls back to defaults in `app-side/config.js`.
+`Recipient email` is sent to the server with each recording in the `recipientEmail` field, allowing the same server endpoint to serve multiple watches.
 
-Le serveur doit accepter un `multipart/form-data` avec :
+The server must accept `multipart/form-data` with:
 
-- `audio` : fichier audio OPUS.
-- `createdAt` : timestamp de creation.
-- `recipientEmail` : adresse email destinataire optionnelle.
+- `audio`: OPUS audio file.
+- `createdAt`: creation timestamp.
+- `recipientEmail`: optional recipient email address.
 
-En mode JSON/base64, le serveur recoit aussi `recipientEmail` avec `audioBase64`.
+In JSON/base64 mode, the server also receives `recipientEmail` with `audioBase64`.
 
-Un exemple Express defensif est fourni dans `server-example/`. Il renvoie `400 MISSING_AUDIO` au lieu de planter en `500` si aucun fichier n'arrive.
+A defensive Express example is provided in `server-example/`. It returns `400 MISSING_AUDIO` instead of crashing with `500` when no file is received.
 
-### Transcription et email cote serveur
+### Server-side transcription and email
 
-Le serveur d'exemple peut maintenant traiter automatiquement chaque idee recue :
+The example server can now automatically process each received idea:
 
-1. sauvegarde du fichier Zepp brut ;
-2. conversion du flux Zepp Opus en vrai fichier `.ogg` ;
-3. conversion du `.ogg` en WAV 16 kHz mono avec `ffmpeg` ;
-4. transcription locale avec `whisper.cpp` ;
-5. sauvegarde d'un `.txt` ;
-6. envoi de la transcription par email avec le `.ogg` en piece jointe.
+1. save the raw Zepp file;
+2. convert the Zepp Opus stream into a real `.ogg` file;
+3. convert `.ogg` to 16 kHz mono WAV with `ffmpeg`;
+4. run local transcription with `whisper.cpp`;
+5. save a `.txt` file;
+6. send the transcription by email with the `.ogg` as an attachment.
 
-Installer les dependances du serveur :
+Install server dependencies:
 
 ```bash
 cd server-example
 npm install
 ```
 
-Installer `ffmpeg` et compiler `whisper.cpp` :
+Install `ffmpeg` and `whisper.cpp`:
 
 ```bash
-sudo dnf install -y git cmake gcc-c++ make ffmpeg
-cd /opt
-sudo git clone https://github.com/ggml-org/whisper.cpp.git
-cd /opt/whisper.cpp
-sudo cmake -B build
-sudo cmake --build build -j
+sudo dnf install -y ffmpeg
+```
+
+Install whisper.cpp and the GGML small or medium model (around 1.5 GB):
+
+Go to https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.1 and download the Linux `whisper-cli` binary.
+
+You also need to download a GGML model, for example `ggml-small.bin` or `ggml-medium.bin`. The `download-ggml-model.sh` script included in the project can do this automatically.
+
+```bash
 sudo bash ./models/download-ggml-model.sh small
 ```
 
-Sur Debian/Ubuntu, remplacez la premiere commande par :
-
-```bash
-sudo apt update
-sudo apt install -y git cmake g++ make ffmpeg
-```
-
-Variables d'environnement minimales :
+Minimum environment variables:
 
 ```bash
 export FFMPEG_BIN="ffmpeg"
 export WHISPER_CPP_BIN="/opt/whisper.cpp/build/bin/whisper-cli"
 export WHISPER_CPP_MODEL="/opt/whisper.cpp/models/ggml-small.bin"
-export WHISPER_CPP_LANGUAGE="fr"
+export WHISPER_CPP_LANGUAGE="en"
 export WHISPER_CPP_TIMEOUT_MS="120000"
+export VOICE_IDEAS_KEEP_FILES="false"
 
 export SMTP_HOST="smtp.example.com"
 export SMTP_PORT="587"
 export SMTP_SECURE="false"
 export SMTP_USER="user@example.com"
-export SMTP_PASS="mot-de-passe"
+export SMTP_PASS="password"
 export SMTP_FROM="Voice Ideas <user@example.com>"
-export MAIL_TO="vous@example.com"
+export MAIL_TO="you@example.com"
 
 export VOICE_IDEAS_UPLOAD_DIR="/var/vhosts/nodejs/voice-ideas-server/sounds"
 ```
 
-Lancer le serveur :
+Start the server:
 
 ```bash
 npm start
 ```
 
-Le serveur repond vite a la montre avec `processing: true`, puis fait conversion, transcription et email en arriere-plan. Les erreurs de transcription ou SMTP apparaissent dans les logs du serveur sans bloquer la montre.
+The server replies quickly to the watch with `processing: true`, then performs conversion, transcription, and email sending in the background. Transcription or SMTP errors appear in server logs without blocking the watch.
+After a successful email send, the server removes the raw `.opus`, `.ogg`, intermediate `.wav`, and `.txt` files. To keep them for debugging, use `VOICE_IDEAS_KEEP_FILES=true`.
 
-Pour tester manuellement la transcription locale :
+To test local transcription manually:
 
 ```bash
 ffmpeg -y -i sounds/2026-07-03_22-19-51-idea.ogg -ar 16000 -ac 1 -c:a pcm_s16le /tmp/idea.wav
-/opt/whisper.cpp/build/bin/whisper-cli -m /opt/whisper.cpp/models/ggml-small.bin -f /tmp/idea.wav -l fr -otxt -of /tmp/idea
+/opt/whisper.cpp/build/bin/whisper-cli -m /opt/whisper.cpp/models/ggml-small.bin -f /tmp/idea.wav -l en -otxt -of /tmp/idea
 cat /tmp/idea.txt
 ```
 
-## Points API a verifier dans votre SDK
+## API points to verify in your SDK
 
-Les noms exacts suivants dependent de la version du SDK Zepp OS Mini Program installee :
+The exact names below depend on the installed Zepp OS Mini Program SDK version:
 
-- `@zos/media` : ce squelette utilise l'API officielle `create(id.RECORDER)`, `setFormat(codec.OPUS, { target_file })`, `start()` et `stop()`.
-- Liaison Side Service : ce projet utilise `MessageBuilder` et un envoi JSON/base64 par morceaux depuis la montre, car `TransferFile` ne declenchait pas fiablement `onReceivedFile` sur la Bip 6 testee.
-- Envoi HTTP : le Side Service telephone reconstruit l'audio et poste un JSON contenant `audioBase64` vers le serveur.
-- Widget : `data-widget/voice-ideas/index.js` sert uniquement de raccourci vers `page/index`, via `@zos/router`. Il ne demarre pas le micro directement.
+- `@zos/media`: this scaffold uses the official API `create(id.RECORDER)`, `setFormat(codec.OPUS, { target_file })`, `start()`, and `stop()`.
+- Side Service bridge: this project uses `MessageBuilder` and chunked JSON/base64 uploads from the watch, because `TransferFile` did not reliably trigger `onReceivedFile` on the tested Bip 6.
+- HTTP upload: the phone Side Service reconstructs the audio and posts JSON containing `audioBase64` to the server.
+- Widget: `data-widget/voice-ideas/index.js` is only a shortcut to `page/index` via `@zos/router`. It does not start the microphone directly.
 
-L'alternative officielle la plus proche, si un nom diverge, reste :
+If a name differs, the closest official alternatives are:
 
-- Enregistrement audio : module officiel `@zos/media`.
-- Envoi reseau : Side Service app-side + `fetch`/API HTTP app-side documentee par Zepp.
-- Liaison montre/telephone : `BasePage#request`/`BaseSideService`, ou l'API officielle de service app-side documentee pour votre version du SDK.
+- Audio recording: official `@zos/media` module.
+- Network upload: app-side Side Service + Zepp-documented app-side `fetch`/HTTP API.
+- Watch/phone bridge: `BasePage#request`/`BaseSideService`, or the official app-side service API documented for your SDK version.
 
-## Validation locale effectuee
+## Local validation performed
 
-Validation faite avec :
+Validation command used:
 
 ```bash
 zeus --version
 ```
 
-Version observee :
+Observed version:
 
 ```text
 zeus: v1.9.1
 zpm: v3.4.1
 ```
 
-Build reussi :
+Successful build:
 
 ```bash
 npm run build
 ```
 
-Le package genere se trouve dans `dist/`.
+The generated package is in `dist/`.
 
-Note manifeste : le cache local du CLI connait la Bip 6 sous le nom interne `pamir`, ecran `390x450`, API max `4.2`. Le manifeste garde le format packager v3 accepte par `zeus` (`st: "s"`, `dw: 390`) ; l'ajout direct des `deviceSource` Bip 6 dans `platforms` casse le packaging d'icone avec `zeus v1.9.1`.
+Manifest note: the CLI local cache identifies Bip 6 with internal name `pamir`, screen `390x450`, max API `4.2`. The manifest keeps the packager v3 format accepted by `zeus` (`st: "s"`, `dw: 390`); directly adding Bip 6 `deviceSource` entries to `platforms` breaks icon packaging with `zeus v1.9.1`.
 
-## Test sur montre avec Zepp Developer Mode
+## Watch testing with Zepp Developer Mode
 
-1. Ouvrir l'application Zepp sur le telephone associe a l'Amazfit Bip 6.
-2. Activer le Developer Mode dans les options developpeur Zepp.
-3. Garder la montre connectee au telephone en Bluetooth.
-4. Depuis ce dossier, lancer :
+1. Open the Zepp app on the phone paired with the Amazfit Bip 6.
+2. Enable Developer Mode in Zepp developer options.
+3. Keep the watch connected to the phone over Bluetooth.
+4. From this folder, run:
 
 ```bash
 npm run build
 zeus preview -s
 ```
 
-5. Scanner le QR code ou choisir la montre cible selon l'interface affichee par `zeus`.
-6. Ouvrir `Voice Ideas` sur la montre.
-7. Appuyer sur `Enregistrer`.
-8. Appuyer sur `Arreter`.
-9. Verifier les logs `zeus` :
-   - creation du fichier local ;
-   - appel au Side Service ;
-   - reponse HTTP du serveur.
+5. Scan the QR code or select the target watch depending on what `zeus` shows.
+6. Open `Voice Ideas` on the watch.
+7. Tap `Record`.
+8. Tap `Stop`.
+9. Check `zeus` logs for:
+   - local file creation;
+   - Side Service call;
+   - server HTTP response.
 
-## Flux implemente
+## Implemented flow
 
-1. `page/index.js` affiche le bouton et gere l'etat d'interface.
-2. `page/recorder.js` demarre et arrete l'enregistrement via `@zos/media`.
-3. `data-widget/voice-ideas/index.js` affiche un raccourci qui ouvre la page principale.
-4. Le fichier est cree dans le sandbox local de la mini app.
-5. `page/side-service.js` lit le fichier et l'envoie au Side Service telephone par morceaux.
-6. `app-side/index.js` reconstruit l'audio et le poste vers `SERVER_UPLOAD_URL`.
+1. `page/index.js` shows the button and manages UI state.
+2. `page/recorder.js` starts and stops recording via `@zos/media`.
+3. `data-widget/voice-ideas/index.js` shows a shortcut that opens the main page.
+4. The file is created in the mini app local sandbox.
+5. `page/side-service.js` reads the file and sends it to the phone Side Service in chunks.
+6. `app-side/index.js` reconstructs the audio and posts it to `SERVER_UPLOAD_URL`.
 
 
 ## Screenshots
