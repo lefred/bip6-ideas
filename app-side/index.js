@@ -196,6 +196,7 @@ async function finishChunkUpload(params) {
     fileSize: session.fileSize,
     contentType: session.contentType || 'audio/opus',
     createdAt: session.createdAt,
+    recipientEmail: getRecipientEmail(),
     audioBase64
   })
 }
@@ -332,12 +333,13 @@ async function uploadAudio({ filePath, contentType, createdAt, originalPath }) {
   })
   form.append('createdAt', String(createdAt || Date.now()))
   form.append('sourcePath', originalPath || '')
+  form.append('recipientEmail', getRecipientEmail())
 
   // Zepp Side Service fetch uses an object argument: { url, method, headers, body }.
   // Timeout support is SDK-dependent; REQUEST_TIMEOUT_MS is kept in config for the
   // official timeout option if your SDK exposes one.
   const response = await fetch({
-    url: SERVER_UPLOAD_URL,
+    url: getServerUploadUrl(),
     method: 'POST',
     body: form
   })
@@ -367,17 +369,18 @@ async function uploadAudio({ filePath, contentType, createdAt, originalPath }) {
   return response.body || { status }
 }
 
-async function uploadAudioJson({ fileName, fileSize, contentType, createdAt, audioBase64 }) {
+async function uploadAudioJson({ fileName, fileSize, contentType, createdAt, recipientEmail, audioBase64 }) {
   postDebug('upload-json-start', {
     fileName,
     fileSize,
     contentType,
     createdAt,
+    recipientEmail,
     base64Length: audioBase64 ? audioBase64.length : 0
   })
 
   const response = await fetch({
-    url: SERVER_UPLOAD_URL,
+    url: getServerUploadUrl(),
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -387,6 +390,7 @@ async function uploadAudioJson({ fileName, fileSize, contentType, createdAt, aud
       fileSize,
       contentType,
       createdAt,
+      recipientEmail,
       audioBase64
     })
   })
@@ -438,7 +442,7 @@ function summarizeFileHandler(fileHandler) {
 
 function postDebug(event, payload = {}) {
   fetch({
-    url: SERVER_DEBUG_URL,
+    url: getServerDebugUrl(),
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -451,4 +455,35 @@ function postDebug(event, payload = {}) {
   }).catch((error) => {
     console.log('Debug POST failed', event, error)
   })
+}
+
+function getServerUploadUrl() {
+  return getSettingValue('serverUploadUrl', SERVER_UPLOAD_URL)
+}
+
+function getServerDebugUrl() {
+  return getSettingValue('serverDebugUrl', SERVER_DEBUG_URL)
+}
+
+function getRecipientEmail() {
+  return getSettingValue('recipientEmail', '')
+}
+
+function getSettingValue(key, fallback) {
+  try {
+    if (
+      typeof settings !== 'undefined' &&
+      settings.settingsStorage &&
+      typeof settings.settingsStorage.getItem === 'function'
+    ) {
+      const value = settings.settingsStorage.getItem(key)
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim()
+      }
+    }
+  } catch (error) {
+    console.log('Read setting failed', key, error)
+  }
+
+  return fallback
 }

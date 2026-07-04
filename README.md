@@ -10,6 +10,7 @@ Un projet Zepp OS Mini Program contient generalement :
 - `page/` : code execute sur la montre. La cible Bip 6 detectee par le CLI local est `pamir`, ecran `390x450`, API max `4.2`.
 - `data-widget/` : widget raccourci affiche dans les tuiles/widgets et ouvre la page principale.
 - `app-side/` : Side Service execute cote telephone via l'application Zepp.
+- `setting/` : ecran de reglages affiche cote telephone dans l'application Zepp.
 - `shared/` ou petits adaptateurs : code de messagerie ou contrats communs.
 - `package.json` : scripts locaux autour du CLI Zepp `zeus`.
 
@@ -61,10 +62,22 @@ Editez `app-side/config.js` :
 export const SERVER_UPLOAD_URL = 'https://votre-serveur.example/api/voice-ideas'
 ```
 
+Ces valeurs peuvent aussi etre modifiees depuis l'application Zepp sur le telephone, dans les reglages de l'application `Voice Ideas` :
+
+- `Server upload URL`
+- `Debug URL`
+- `Recipient email`
+
+Le Side Service utilise les reglages telephone s'ils existent, sinon les valeurs par defaut de `app-side/config.js`.
+`Recipient email` est envoye au serveur avec chaque enregistrement sous le champ `recipientEmail`, ce qui permet au meme endpoint serveur de servir plusieurs montres.
+
 Le serveur doit accepter un `multipart/form-data` avec :
 
 - `audio` : fichier audio OPUS.
 - `createdAt` : timestamp de creation.
+- `recipientEmail` : adresse email destinataire optionnelle.
+
+En mode JSON/base64, le serveur recoit aussi `recipientEmail` avec `audioBase64`.
 
 Un exemple Express defensif est fourni dans `server-example/`. Il renvoie `400 MISSING_AUDIO` au lieu de planter en `500` si aucun fichier n'arrive.
 
@@ -189,7 +202,8 @@ Note manifeste : le cache local du CLI connait la Bip 6 sous le nom interne `pam
 4. Depuis ce dossier, lancer :
 
 ```bash
-npm run dev
+npm run build
+zeus preview -s
 ```
 
 5. Scanner le QR code ou choisir la montre cible selon l'interface affichee par `zeus`.

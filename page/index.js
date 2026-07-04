@@ -1,7 +1,8 @@
 import { createWidget, widget, align, text_style, prop } from '@zos/ui'
 import { px } from '@zos/utils'
-import { readdirSync } from '@zos/fs'
+import { readdirSync, rmSync } from '@zos/fs'
 import { createVoiceFlow } from './voice-flow'
+import { sendAudioToSideService } from './side-service'
 
 const COLORS = {
   background: 0x101418,
@@ -21,6 +22,8 @@ Page({
   state: {
     voiceFlow: null,
     lastLogoTapAt: 0,
+    isResendMode: false,
+    isResending: false,
     statusText: 'Pret a enregistrer'
   },
 
@@ -103,8 +106,17 @@ Page({
       text: 'Enregistrer',
       text_size: px(24),
       color: COLORS.text,
-      click_func: () => this.state.voiceFlow.toggleRecording()
+      click_func: () => this.handleMainButton()
     })
+  },
+
+  async handleMainButton() {
+    if (this.state.isResendMode) {
+      await this.resendLocalRecordings()
+      return
+    }
+
+    await this.state.voiceFlow.toggleRecording()
   },
 
   drawLogo() {
@@ -132,8 +144,60 @@ Page({
   },
 
   showLocalFilesInfo() {
-    const localCount = countLocalRecordings()
+    const localFiles = listLocalRecordings()
+    const localCount = localFiles.length
+
     this.setStatus(`by lefred <lefred@lefred.be>\nLocal files: ${localCount}`)
+
+    if (localCount > 0 && !this.state.voiceFlow.isRecording && !this.state.voiceFlow.isBusy) {
+      this.state.isResendMode = true
+      this.setButton(`Renvoyer ${localCount}`, COLORS.primary, COLORS.primaryPressed)
+    }
+  },
+
+  async resendLocalRecordings() {
+    if (this.state.isResending || this.state.voiceFlow.isRecording || this.state.voiceFlow.isBusy) {
+      return
+    }
+
+    const localFiles = listLocalRecordings()
+    if (!localFiles.length) {
+      this.state.isResendMode = false
+      this.setStatus('Aucun fichier local')
+      this.setButton('Enregistrer', COLORS.primary, COLORS.primaryPressed)
+      return
+    }
+
+    this.state.isResending = true
+    this.setButton('Envoi...', COLORS.primary, COLORS.primaryPressed)
+
+    let sent = 0
+    let failed = 0
+
+    for (let index = 0; index < localFiles.length; index += 1) {
+      const fileName = localFiles[index]
+      this.setStatus(`Renvoi ${index + 1}/${localFiles.length}`)
+
+      try {
+        await sendAudioToSideService(this, {
+          filePath: fileName,
+          contentType: 'audio/opus',
+          createdAt: getCreatedAtFromFileName(fileName),
+          onStatus: (text) => this.setStatus(`Renvoi ${index + 1}/${localFiles.length}\n${text}`)
+        })
+
+        removeLocalAudio(fileName)
+        sent += 1
+      } catch (error) {
+        console.log('resend local recording failed', fileName, error)
+        failed += 1
+      }
+    }
+
+    this.state.isResending = false
+    this.state.isResendMode = false
+    this.setButton('Enregistrer', COLORS.primary, COLORS.primaryPressed)
+    this.setStatus(`Renvoi termine\nEnvoyes: ${sent} Echecs: ${failed}`)
   },
 
   setStatus(text) {
@@ -157,19 +221,42 @@ Page({
 })
 
 function countLocalRecordings() {
+  return listLocalRecordings().length
+}
+
+function listLocalRecordings() {
   try {
     const files = readdirSync({ path: '' }) || []
-    let count = 0
+    const recordings = []
 
     files.forEach((name) => {
       if (typeof name === 'string' && name.indexOf('idea-') === 0 && name.endsWith('.opus')) {
-        count += 1
+        recordings.push(name)
       }
     })
 
-    return count
+    return recordings
   } catch (error) {
     console.log('List local recordings failed', error)
-    return 0
+    return []
+  }
+}
+
+function getCreatedAtFromFileName(fileName) {
+  const match = /^idea-(\d{13})\.opus$/.exec(fileName || '')
+  return match ? Number(match[1]) : Date.now()
+}
+
+function removeLocalAudio(filePath) {
+  try {
+    const dataPath = filePath && filePath.indexOf('data://') === 0
+      ? filePath.replace('data://', '')
+      : filePath
+
+    if (dataPath) {
+      rmSync({ path: dataPath })
+    }
+  } catch (error) {
+    console.log('Local audio cleanup failed', error)
   }
 }

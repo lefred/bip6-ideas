@@ -6,7 +6,7 @@ const SIDE_SERVICE_TIMEOUT_MS = 10000
 // Send the recorded file to the phone Side Service in JSON/base64 chunks.
 // TransferFile did not trigger onReceivedFile reliably on Bip 6 in preview
 // installs, so this uses the MessageBuilder channel that we know is alive.
-export async function sendAudioToSideService(pageContext, { filePath, contentType, onStatus }) {
+export async function sendAudioToSideService(pageContext, { filePath, contentType, createdAt, onStatus }) {
   const dataPath = normalizeDataPath(filePath)
   const stat = statSync({ path: dataPath })
 
@@ -33,7 +33,7 @@ export async function sendAudioToSideService(pageContext, { filePath, contentTyp
       fileSize: stat.size,
       totalChunks,
       contentType,
-      createdAt: Date.now()
+      createdAt: createdAt || Date.now()
     }
   })
 
