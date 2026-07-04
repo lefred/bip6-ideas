@@ -232,3 +232,6 @@ zeus preview -s
 ![Screenshot 4](screenshots/IMG_3398.PNG)
 ![Screenshot 5](screenshots/IMG_3399.PNG)
 ![Screenshot 6](screenshots/IMG_3400.PNG)
+![Screenshot 7](screenshots/IMG_3407.PNG)
+![Screenshot 8](screenshots/IMG_3408.PNG)
+
