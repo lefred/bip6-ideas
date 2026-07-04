@@ -223,3 +223,13 @@ zeus preview -s
 4. Le fichier est cree dans le sandbox local de la mini app.
 5. `page/side-service.js` lit le fichier et l'envoie au Side Service telephone par morceaux.
 6. `app-side/index.js` reconstruit l'audio et le poste vers `SERVER_UPLOAD_URL`.
+
+
+## Screenshots
+
+![Screenshot 1](screenshots/IMG_3401.PNG)
+![Screenshot 2](screenshots/IMG_3396.PNG)
+![Screenshot 3](screenshots/IMG_3397.PNG)
+![Screenshot 4](screenshots/IMG_3398.PNG)
+![Screenshot 5](screenshots/IMG_3399.PNG)
+![Screenshot 6](screenshots/IMG_3400.PNG)
