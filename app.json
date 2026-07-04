@@ -1,0 +1,95 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 104206001,
+    "appName": "Voice Ideas",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "0.1.0"
+    },
+    "icon": "icon.png",
+    "vender": "local",
+    "description": "Record short voice ideas and upload them through the phone Side Service."
+  },
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.2.0",
+      "target": "4.2.0",
+      "minVersion": "4.2.0"
+    }
+  },
+  "permissions": [
+    "record",
+    "media",
+    "storage",
+    "device:os.local_storage",
+    "device:os.mic",
+    "device:os.ble"
+  ],
+  "targets": {
+    "default": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/index"
+          ]
+        },
+        "data-widget": {
+          "widgets": [
+            {
+              "path": "data-widget/voice-ideas/index",
+              "name": "Voice Ideas",
+              "icon": "icon.png",
+              "window": {
+                "isPinned": 1
+              },
+              "runtime": {
+                "ability": [
+                  {
+                    "type": 1,
+                    "subType": []
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        }
+      },
+      "designWidth": 390,
+      "platforms": [
+        {
+          "st": "s",
+          "dw": 390
+        }
+      ]
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Voice Ideas",
+      "data-widget": {
+        "widgets": [
+          {
+            "name": "Voice Ideas"
+          }
+        ]
+      }
+    },
+    "fr-FR": {
+      "appName": "Voice Ideas",
+      "data-widget": {
+        "widgets": [
+          {
+            "name": "Voice Ideas"
+          }
+        ]
+      }
+    }
+  },
+  "defaultLanguage": "fr-FR",
+  "debug": false
+}

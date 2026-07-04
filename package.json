@@ -1,0 +1,15 @@
+{
+  "name": "voice-ideas-zepp-bip6",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zepp OS Mini Program for recording voice ideas on Amazfit Bip 6 and uploading through the phone Side Service.",
+  "scripts": {
+    "dev": "zeus dev",
+    "build": "node scripts/zeus-build.js",
+    "preview": "zeus preview",
+    "install:cli": "npm install -g @zeppos/zeus-cli"
+  },
+  "devDependencies": {
+    "@zeppos/device-types": "^3.0.0"
+  }
+}
