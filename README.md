@@ -54,6 +54,11 @@ Generate a preview/test QR if your CLI version supports it:
 npm run preview
 ```
 
+## Server architecture overview
+
+![Architecture](screenshots/voice-ideas-architecture-example.png)
+
+
 ## Server configuration
 
 Edit `app-side/config.js`:

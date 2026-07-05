@@ -54,6 +54,10 @@ Generer un apercu/QR de test si votre version du CLI le supporte :
 npm run preview
 ```
 
+## Aperçu de l'architecture du serveur
+
+![Architecture](screenshots/voice-ideas-architecture-example.png)
+
 ## Configuration serveur
 
 Editez `app-side/config.js` :
